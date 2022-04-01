@@ -2,18 +2,19 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import {
-  addDummyDbItems,
   addDbItem,
   getAllDbItems,
   getDbItemById,
   DbItem,
   updateDbItemById,
+  deleteDbItemById,
 } from "./db";
 import filePath from "./filePath";
+import ToDoData from "../ToDo.json";
 
 // loading in some dummy items into the database
 // (comment out if desired, or change the number)
-addDummyDbItems(20);
+// addDummyDbItems(20);
 
 const app = express();
 
@@ -36,8 +37,8 @@ app.get("/", (req, res) => {
 
 // GET /items
 app.get("/items", (req, res) => {
-  const allSignatures = getAllDbItems();
-  res.status(200).json(allSignatures);
+  const allToDoItems = getAllDbItems();
+  res.status(200).json(allToDoItems);
 });
 
 // POST /items
@@ -45,8 +46,8 @@ app.post<{}, {}, DbItem>("/items", (req, res) => {
   // to be rigorous, ought to handle non-conforming request bodies
   // ... but omitting this as a simplification
   const postData = req.body;
-  const createdSignature = addDbItem(postData);
-  res.status(201).json(createdSignature);
+  const createdToDoData = addDbItem(postData);
+  res.status(201).json(createdToDoData);
 });
 
 // GET /items/:id
@@ -66,6 +67,9 @@ app.delete<{ id: string }>("/items/:id", (req, res) => {
     res.status(404).json(matchingSignature);
   } else {
     res.status(200).json(matchingSignature);
+    deleteDbItemById(parseInt(req.params.id));
+    console.log(req.params.id);
+    console.log(getAllDbItems);
   }
 });
 
