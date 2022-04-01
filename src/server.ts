@@ -10,7 +10,6 @@ import {
   deleteDbItemById,
 } from "./db";
 import filePath from "./filePath";
-import ToDoData from "../ToDo.json";
 
 // loading in some dummy items into the database
 // (comment out if desired, or change the number)
@@ -68,8 +67,8 @@ app.delete<{ id: string }>("/items/:id", (req, res) => {
   } else {
     res.status(200).json(matchingSignature);
     deleteDbItemById(parseInt(req.params.id));
-    console.log(req.params.id);
-    console.log(getAllDbItems);
+    // console.log(req.params.id);
+    // console.log(getAllDbItems());
   }
 });
 

@@ -54,6 +54,8 @@ export const addDbItem = (data: DbItem): DbItemWithId => {
  */
 export const deleteDbItemById = (id: number): DbItemWithId | "not found" => {
   const idxToDeleteAt = findIndexOfDbItemById(id);
+  // console.log(id);
+  // console.log(idxToDeleteAt);
   if (typeof idxToDeleteAt === "number") {
     const itemToDelete = getDbItemById(id);
     db.splice(idxToDeleteAt, 1); // .splice can delete from an array
