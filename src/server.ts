@@ -1,87 +1,125 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
-import {
-  addDbItem,
-  getAllDbItems,
-  getDbItemById,
-  DbItem,
-  updateDbItemById,
-  deleteDbItemById,
-} from "./db";
-import filePath from "./filePath";
+export interface DbItem {
+  // sketch out interface here
+}
 
-// loading in some dummy items into the database
-// (comment out if desired, or change the number)
-// addDummyDbItems(20);
+export interface DbItemWithId extends DbItem {
+  id: number;
+}
 
-const app = express();
+const db: DbItemWithId[] = [];
 
-/** Parses JSON data in a request automatically */
-app.use(express.json());
-/** To allow 'Cross-Origin Resource Sharing': https://en.wikipedia.org/wiki/Cross-origin_resource_sharing */
-app.use(cors());
+/** Variable to keep incrementing id of database items */
+let idCounter = 0;
 
-// read in contents of any environment variables in the .env file
-dotenv.config();
-
-// use the environment variable PORT, or 4000 as a fallback
-const PORT_NUMBER = process.env.PORT ?? 4000;
-
-// API info page
-app.get("/", (req, res) => {
-  const pathToFile = filePath("../public/index.html");
-  res.sendFile(pathToFile);
-});
-
-// GET /items
-app.get("/items", (req, res) => {
-  const allToDoItems = getAllDbItems();
-  res.status(200).json(allToDoItems);
-});
-
-// POST /items
-app.post<{}, {}, DbItem>("/items", (req, res) => {
-  // to be rigorous, ought to handle non-conforming request bodies
-  // ... but omitting this as a simplification
-  const postData = req.body;
-  const createdToDoData = addDbItem(postData);
-  res.status(201).json(createdToDoData);
-});
-
-// GET /items/:id
-app.get<{ id: string }>("/items/:id", (req, res) => {
-  const matchingSignature = getDbItemById(parseInt(req.params.id));
-  if (matchingSignature === "not found") {
-    res.status(404).json(matchingSignature);
-  } else {
-    res.status(200).json(matchingSignature);
+/**
+ * Adds in some dummy database items to the database
+ *
+ * @param n - the number of items to generate
+ * @returns the created items
+ */
+export const addDummyDbItems = (n: number): DbItemWithId[] => {
+  const createdSignatures: DbItemWithId[] = [];
+  for (let count = 0; count < n; count++) {
+    const createdSignature = addDbItem({
+      // possibly add some generated data here
+    });
+    createdSignatures.push(createdSignature);
   }
-});
+  return createdSignatures;
+};
 
-// DELETE /items/:id
-app.delete<{ id: string }>("/items/:id", (req, res) => {
-  const matchingSignature = getDbItemById(parseInt(req.params.id));
-  if (matchingSignature === "not found") {
-    res.status(404).json(matchingSignature);
+/**
+ * Adds in a single item to the database
+ *
+ * @param data - the item data to insert in
+ * @returns the item added (with a newly created id)
+ */
+export const addDbItem = (data: DbItem): DbItemWithId => {
+  const newEntry: DbItemWithId = {
+    id: ++idCounter,
+    ...data,
+  };
+  db.push(newEntry);
+  return newEntry;
+};
+
+/**
+ * Deletes a database item with the given id
+ *
+ * @param id - the id of the database item to delete
+ * @returns the deleted database item (if originally located),
+ *  otherwise the string `"not found"`
+ */
+export const deleteDbItemById = (id: number): DbItemWithId | "not found" => {
+  const idxToDeleteAt = findIndexOfDbItemById(id);
+  if (typeof idxToDeleteAt === "number") {
+    const itemToDelete = getDbItemById(id);
+    db.splice(idxToDeleteAt, 1); // .splice can delete from an array
+    return itemToDelete;
   } else {
-    res.status(200).json(matchingSignature);
-    deleteDbItemById(parseInt(req.params.id));
-    // console.log(req.params.id);
-    // console.log(getAllDbItems());
+    return "not found";
   }
-});
+};
 
-// PATCH /items/:id
-app.patch<{ id: string }, {}, Partial<DbItem>>("/items/:id", (req, res) => {
-  const matchingSignature = updateDbItemById(parseInt(req.params.id), req.body);
-  if (matchingSignature === "not found") {
-    res.status(404).json(matchingSignature);
+/**
+ * Finds the index of a database item with a given id
+ *
+ * @param id - the id of the database item to locate the index of
+ * @returns the index of the matching database item,
+ *  otherwise the string `"not found"`
+ */
+const findIndexOfDbItemById = (id: number): number | "not found" => {
+  const matchingIdx = db.findIndex((entry) => entry.id === id);
+  // .findIndex returns -1 if not located
+  if (matchingIdx !== -1) {
+    return matchingIdx;
   } else {
-    res.status(200).json(matchingSignature);
+    return "not found";
   }
-});
+};
 
-app.listen(PORT_NUMBER, () => {
-  console.log(`Server is listening on port ${PORT_NUMBER}!`);
-});
+/**
+ * Find all database items
+ * @returns all database items from the database
+ */
+export const getAllDbItems = (): DbItemWithId[] => {
+  return db;
+};
+
+/**
+ * Locates a database item by a given id
+ *
+ * @param id - the id of the database item to locate
+ * @returns the located database item (if found),
+ *  otherwise the string `"not found"`
+ */
+export const getDbItemById = (id: number): DbItemWithId | "not found" => {
+  const maybeEntry = db.find((entry) => entry.id === id);
+  if (maybeEntry) {
+    return maybeEntry;
+  } else {
+    return "not found";
+  }
+};
+
+/**
+ * Applies a partial update to a database item for a given id
+ *  based on the passed data
+ *
+ * @param id - the id of the database item to update
+ * @param newData - the new data to overwrite
+ * @returns the updated database item (if one is located),
+ *  otherwise the string `"not found"`
+ */
+export const updateDbItemById = (
+  id: number,
+  newData: Partial<DbItem>
+): DbItemWithId | "not found" => {
+  const idxOfEntry = findIndexOfDbItemById(id);
+  // type guard against "not found"
+  if (typeof idxOfEntry === "number") {
+    return Object.assign(db[idxOfEntry], newData);
+  } else {
+    return "not found";
+  }
+};
